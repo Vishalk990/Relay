@@ -1,0 +1,11 @@
+.env
+.env.local
+*.local.env
+.claude
+CLAUDE.md
+
+bin/                  # if you `make build-server`, the binary lands here
+*.log
+.DS_Store             # mac
+coverage.out          # go test coverage
+*.test                # go test build artifacts

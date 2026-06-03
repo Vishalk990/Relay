@@ -432,7 +432,7 @@ const landingStyles = `
     text-wrap: balance;
   }
   h1.hero-title .em {
-    background: linear-gradient(95deg, var(--accent) 0%, var(--accent-2) 60%, #ffb98a 100%);
+    background: linear-gradient(95deg, var(--accent) 0%, var(--accent-2) 60%, #4db6ff 100%);
     -webkit-background-clip: text; background-clip: text; color: transparent;
     font-style: italic;
     font-weight: 500;

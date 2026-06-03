@@ -4,10 +4,10 @@
   --font-sans: "Inter Tight", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  --color-accent: #ff5c2c;
-  --color-accent-2: #ff8a5b;
+  --color-accent: #2f6bff;
+  --color-accent-2: #6d9bff;
 
-  --color-m-get: #3ba0ff;
+  --color-m-get: #1fc7d4;
   --color-m-post: #00d97e;
   --color-m-put: #ffb020;
   --color-m-patch: #c084fc;
@@ -22,12 +22,12 @@
 
 /* Relay — shared tokens (theme-switchable via [data-theme]) */
 :root {
-  --accent: #ff5c2c;
-  --accent-2: #ff8a5b;
-  --accent-soft: rgba(255, 92, 44, 0.14);
-  --accent-ring: rgba(255, 92, 44, 0.35);
+  --accent: #2f6bff;
+  --accent-2: #6d9bff;
+  --accent-soft: rgba(47, 107, 255, 0.16);
+  --accent-ring: rgba(47, 107, 255, 0.40);
 
-  --m-get: #3ba0ff;
+  --m-get: #1fc7d4;
   --m-post: #00d97e;
   --m-put: #ffb020;
   --m-patch: #c084fc;
@@ -44,11 +44,11 @@
 :root,
 [data-theme="dark"] {
   color-scheme: dark;
-  --bg-0: #07070a;
-  --bg-1: #0c0c12;
-  --bg-mesh-a: #ff5c2c;
-  --bg-mesh-b: #7c5cff;
-  --bg-mesh-c: #00d4ff;
+  --bg-0: #06080f;
+  --bg-1: #0a0e1a;
+  --bg-mesh-a: #2f6bff;
+  --bg-mesh-b: #5b5cff;
+  --bg-mesh-c: #1fc7d4;
   --glass: rgba(20, 20, 28, 0.55);
   --glass-strong: rgba(28, 28, 38, 0.78);
   --glass-thin: rgba(255, 255, 255, 0.04);
@@ -65,11 +65,11 @@
 
 [data-theme="light"] {
   color-scheme: light;
-  --bg-0: #f6f5f2;
-  --bg-1: #efeeea;
-  --bg-mesh-a: #ff5c2c;
-  --bg-mesh-b: #c084fc;
-  --bg-mesh-c: #3ba0ff;
+  --bg-0: #f4f7fc;
+  --bg-1: #e9eef7;
+  --bg-mesh-a: #2f6bff;
+  --bg-mesh-b: #7c5cff;
+  --bg-mesh-c: #1fc7d4;
   --glass: rgba(255, 255, 255, 0.55);
   --glass-strong: rgba(255, 255, 255, 0.78);
   --glass-thin: rgba(0, 0, 0, 0.03);
@@ -319,7 +319,7 @@ kbd {
   width: 26px;
   height: 26px;
   border-radius: 7px;
-  background: linear-gradient(135deg, var(--accent) 0%, #ff8a5b 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, #4db6ff 100%);
   position: relative;
   display: inline-flex;
   align-items: center;

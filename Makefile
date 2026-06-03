@@ -1,4 +1,4 @@
-.PHONY: dev-web dev-server build-server migrate-up migrate-down migrate-status migrate-new sqlc-gen help
+.PHONY: dev dev-web dev-server build-server migrate-up migrate-down migrate-status migrate-new sqlc-gen help
 
 LOCAL_DB_URL ?= postgres://relay:relay@localhost:5432/relay?sslmode=disable
 
@@ -17,7 +17,13 @@ help:
 	@echo "    make migrate-status # Show current migration version"
 	@echo "    make migrate-new name=create_xxx  # Scaffold a new up/down pair"
 	@echo "    make sqlc-gen       # Regenerate Go code from queries/*.sql"
+	@echo "    make dev            # Run BE + FE together (Ctrl+C kills both)"
 
+dev:
+	@trap 'kill 0' SIGINT; \
+	(cd apps/server && go run ./cmd/api) & \
+	(cd apps/web && npm run dev) & \
+	wait
 
 dev-web:
 	cd apps/web && npm run dev

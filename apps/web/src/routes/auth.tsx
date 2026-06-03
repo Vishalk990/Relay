@@ -3,6 +3,8 @@ import { useMemo, useState } from 'react'
 import { Background } from '@/components/Background'
 import { Brand } from '@/components/Logo'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { useSignup } from '@/features/auth/api'
+import { ApiError } from '@/lib/api/client'
 
 type Mode = 'login' | 'signup'
 
@@ -22,9 +24,13 @@ function AuthPage() {
   const navigate = useNavigate()
   const initialMode: Mode = search.mode === 'signup' ? 'signup' : 'login'
   const [mode, setModeState] = useState<Mode>(initialMode)
+  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [pendingProvider, setPendingProvider] = useState<'google' | 'github' | null>(null)
+  const signup = useSignup()
 
   function setMode(next: Mode) {
     setModeState(next)
@@ -39,11 +45,28 @@ function AuthPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setSubmitting(true)
-    // Mock submit — wire to API later.
-    setTimeout(() => {
-      window.location.href = '/app'
-    }, 600)
+    setErrorMsg(null)
+
+    if (!isSignup) {
+      // Login — backend handler is next phase; keep mock for now.
+      setSubmitting(true)
+      setTimeout(() => {
+        window.location.href = '/app'
+      }, 600)
+      return
+    }
+
+    signup.mutate(
+      { username, email, password },
+      {
+        onSuccess: () => {
+          window.location.href = '/app'
+        },
+        onError: (err) => {
+          setErrorMsg(err instanceof ApiError ? err.message : 'Something went wrong')
+        },
+      },
+    )
   }
 
   function handleOAuth(provider: 'google' | 'github') {
@@ -168,8 +191,16 @@ function AuthPage() {
             <form onSubmit={handleSubmit}>
               {isSignup && (
                 <div className="field">
-                  <label>Full name</label>
-                  <input className="input" type="text" placeholder="Ada Lovelace" autoComplete="name" />
+                  <label>Username</label>
+                  <input
+                    className="input"
+                    type="text"
+                    placeholder="ada_lovelace"
+                    autoComplete="username"
+                    required
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                  />
                 </div>
               )}
               <div className="field">
@@ -180,6 +211,8 @@ function AuthPage() {
                   placeholder="you@company.com"
                   autoComplete="email"
                   required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
               <div className="field">
@@ -193,7 +226,7 @@ function AuthPage() {
                   placeholder="••••••••"
                   autoComplete={isSignup ? 'new-password' : 'current-password'}
                   required
-                  minLength={6}
+                  minLength={isSignup ? 8 : 6}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -227,9 +260,31 @@ function AuthPage() {
                 </div>
               )}
 
-              <button type="submit" className="submit" disabled={submitting}>
+              {errorMsg && (
+                <div
+                  style={{
+                    color: 'var(--err)',
+                    fontSize: 13,
+                    marginBottom: 12,
+                    padding: '8px 10px',
+                    background: 'var(--err-soft, rgba(220, 38, 38, 0.08))',
+                    border: '1px solid var(--err)',
+                    borderRadius: 8,
+                  }}
+                >
+                  {errorMsg}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="submit"
+                disabled={submitting || signup.isPending}
+              >
                 <span>
-                  {submitting ? (isSignup ? 'Creating…' : 'Signing in…') : isSignup ? 'Create account' : 'Sign in'}
+                  {(submitting || signup.isPending)
+                    ? isSignup ? 'Creating…' : 'Signing in…'
+                    : isSignup ? 'Create account' : 'Sign in'}
                 </span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M5 12h14M13 5l7 7-7 7" />
@@ -359,7 +414,7 @@ const authStyles = `
   }
   h1.aside-title .em {
     font-style: italic; font-weight: 500;
-    background: linear-gradient(95deg, var(--accent), #ff8a5b 70%);
+    background: linear-gradient(95deg, var(--accent), #4db6ff 75%);
     -webkit-background-clip: text; background-clip: text; color: transparent;
   }
   .aside-sub { color: var(--text-2); font-size: 15px; line-height: 1.55; margin: 0 0 28px; }

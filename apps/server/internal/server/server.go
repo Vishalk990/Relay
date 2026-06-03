@@ -19,15 +19,26 @@ type Server struct {
 	cfg        *config.Config
 	log        *zap.Logger
 	pool       *pgxpool.Pool
+	auth       *auth.Authenticator
 	echo       *echo.Echo
 	httpServer *http.Server
 }
 
 func New(cfg *config.Config, log *zap.Logger, pool *pgxpool.Pool) *Server {
+
+	cookieSecure := cfg.Primary.Env != "local" && cfg.Primary.Env != "development"
+
+	authenticator := auth.NewAuthenticator(
+		cfg.Auth.JWTSecret,
+		time.Duration(cfg.Auth.JWTLifetime)*time.Second,
+		cookieSecure,
+	)
+
 	s := &Server{
 		cfg:  cfg,
 		log:  log,
 		pool: pool,
+		auth: authenticator,
 		echo: echo.New(),
 	}
 	// TEMPORARY: HideBanner = false + Start() using e.Start() so the banner shows.
@@ -82,8 +93,14 @@ func (s *Server) setupMiddleware() {
 func (s *Server) setupRoutes() {
 	s.echo.GET("/health", s.healthHandler)
 
-	authHandler := auth.NewHandler(s.pool, s.log)
-	s.echo.POST("/auth/signup", authHandler.Signup)
+	authHandler := auth.NewHandler(s.pool, s.log, s.auth)
+	s.echo.POST("/auth/sign-up", authHandler.Signup)
+	s.echo.POST("/auth/login", authHandler.Login)
+	s.echo.POST("/auth/logout", authHandler.Logout)
+
+	protected := s.echo.Group("")
+	protected.Use(auth.Middleware(s.auth))
+	protected.GET("/auth/me", authHandler.Me)
 }
 
 func (s *Server) setupHTTPServer() {

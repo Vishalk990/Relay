@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { Background } from '@/components/Background'
 import { Brand } from '@/components/Logo'
 import { ThemeToggle } from '@/components/ThemeToggle'
-import { useSignup } from '@/features/auth/api'
+import { useLogin, useSignup } from '@/features/auth/api'
 import { ApiError } from '@/lib/api/client'
 
 type Mode = 'login' | 'signup'
@@ -27,10 +27,11 @@ function AuthPage() {
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [submitting, setSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [pendingProvider, setPendingProvider] = useState<'google' | 'github' | null>(null)
   const signup = useSignup()
+  const login = useLogin()
+  const submitting = signup.isPending || login.isPending
 
   function setMode(next: Mode) {
     setModeState(next)
@@ -47,26 +48,18 @@ function AuthPage() {
     e.preventDefault()
     setErrorMsg(null)
 
-    if (!isSignup) {
-      // Login — backend handler is next phase; keep mock for now.
-      setSubmitting(true)
-      setTimeout(() => {
-        window.location.href = '/app'
-      }, 600)
-      return
+    const onSuccess = () => {
+      window.location.href = '/app'
+    }
+    const onError = (err: unknown) => {
+      setErrorMsg(err instanceof ApiError ? err.message : 'Something went wrong')
     }
 
-    signup.mutate(
-      { username, email, password },
-      {
-        onSuccess: () => {
-          window.location.href = '/app'
-        },
-        onError: (err) => {
-          setErrorMsg(err instanceof ApiError ? err.message : 'Something went wrong')
-        },
-      },
-    )
+    if (isSignup) {
+      signup.mutate({ username, email, password }, { onSuccess, onError })
+    } else {
+      login.mutate({ email, password }, { onSuccess, onError })
+    }
   }
 
   function handleOAuth(provider: 'google' | 'github') {
@@ -279,10 +272,10 @@ function AuthPage() {
               <button
                 type="submit"
                 className="submit"
-                disabled={submitting || signup.isPending}
+                disabled={submitting}
               >
                 <span>
-                  {(submitting || signup.isPending)
+                  {submitting
                     ? isSignup ? 'Creating…' : 'Signing in…'
                     : isSignup ? 'Create account' : 'Sign in'}
                 </span>

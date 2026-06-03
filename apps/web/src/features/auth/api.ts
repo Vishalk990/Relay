@@ -14,14 +14,29 @@ export type SignupRequest = {
   password: string
 }
 
-export type SignupResponse = {
+export type LoginRequest = {
+  email: string
+  password: string
+}
+
+export type AuthResponse = {
   user: User
 }
 
 export function useSignup() {
   return useMutation({
     mutationFn: (req: SignupRequest) =>
-      apiFetch<SignupResponse>('/auth/signup', {
+      apiFetch<AuthResponse>('/auth/sign-up', {
+        method: 'POST',
+        body: req,
+      }),
+  })
+}
+
+export function useLogin() {
+  return useMutation({
+    mutationFn: (req: LoginRequest) =>
+      apiFetch<AuthResponse>('/auth/login', {
         method: 'POST',
         body: req,
       }),

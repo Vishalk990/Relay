@@ -6,6 +6,9 @@ import (
 	"relay-backend/internal/db"
 	"strings"
 
+	"github.com/google/uuid"
+
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -17,18 +20,25 @@ type Handler struct {
 	pool    *pgxpool.Pool
 	queries *db.Queries
 	log     *zap.Logger
+	auth    *Authenticator
 }
 
-func NewHandler(pool *pgxpool.Pool, log *zap.Logger) *Handler {
+func NewHandler(pool *pgxpool.Pool, log *zap.Logger, auth *Authenticator) *Handler {
 	return &Handler{
 		pool:    pool,
 		queries: db.New(pool),
 		log:     log,
+		auth:    auth,
 	}
 }
 
 type SignupReqeust struct {
 	Username string `json:"username"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
@@ -95,7 +105,78 @@ func (h *Handler) Signup(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "internal error")
 	}
 
+	if err := h.auth.IssueAndSet(c.Response().Writer, uuidToString(user.ID)); err != nil {
+		h.log.Error("issue cookie failed", zap.Error(err))
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal error")
+	}
+
 	return c.JSON(http.StatusCreated, map[string]any{"user": user})
+}
+
+func (h *Handler) Login(c echo.Context) error {
+	var req LoginRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid req body")
+	}
+
+	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
+	if req.Email == "" || req.Password == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "email and password are required")
+	}
+
+	ctx := c.Request().Context()
+
+	identity, err := h.queries.GetIdentityByProviderSubject(ctx, db.GetIdentityByProviderSubjectParams{
+		Provider:        "password",
+		ProviderSubject: req.Email,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return echo.NewHTTPError(http.StatusUnauthorized, "invalid credentials")
+		}
+		h.log.Error("lookup identity failed", zap.Error(err))
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal error")
+	}
+
+	if !identity.Credential.Valid || !VerifyPassword(identity.Credential.String, req.Password) {
+		return echo.NewHTTPError(http.StatusUnauthorized, "invalid credentials")
+	}
+
+	user, err := h.queries.GetUserByID(ctx, identity.UserID)
+	if err != nil {
+		h.log.Error("load user failed", zap.Error(err))
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal error")
+	}
+
+	if err := h.auth.IssueAndSet(c.Response().Writer, uuidToString(user.ID)); err != nil {
+		h.log.Error("issue cookie failed", zap.Error(err))
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal error")
+	}
+
+	return c.JSON(http.StatusOK, map[string]any{"user": user})
+}
+
+func (h *Handler) Me(c echo.Context) error {
+	userIDStr := UserIDFromContext(c)
+	if userIDStr == "" {
+		return echo.NewHTTPError(http.StatusUnauthorized, "not authenticated")
+	}
+
+	userID, err := stringToUUID(userIDStr)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, "invalid token")
+	}
+
+	user, err := h.queries.GetUserByID(c.Request().Context(), userID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
+		}
+		h.log.Error("load user failed", zap.Error(err))
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal error")
+	}
+
+	return c.JSON(http.StatusOK, map[string]any{"user": user})
 }
 
 func isUniqueViolation(err error) bool {
@@ -104,4 +185,25 @@ func isUniqueViolation(err error) bool {
 		return pgErr.Code == "23505"
 	}
 	return false
+}
+
+func (h *Handler) Logout(c echo.Context) error {
+	h.auth.Clear(c.Response().Writer)
+	return c.NoContent(http.StatusNoContent)
+}
+
+func uuidToString(u pgtype.UUID) string {
+	if !u.Valid {
+		return ""
+	}
+	return uuid.UUID(u.Bytes).String()
+}
+
+// stringToUUID parses a canonical UUID string back into a pgtype.UUID.
+func stringToUUID(s string) (pgtype.UUID, error) {
+	var u pgtype.UUID
+	if err := u.Scan(s); err != nil {
+		return u, err
+	}
+	return u, nil
 }

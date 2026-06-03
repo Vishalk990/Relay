@@ -13,6 +13,7 @@ type Config struct {
 	Primary  Primary
 	Server   ServerConfig
 	Database DatabaseConfig
+	Auth     AuthConfig
 }
 
 type Primary struct {
@@ -40,6 +41,11 @@ type DatabaseConfig struct {
 	ConnMaxIdletime int    `validate:"required"`
 }
 
+type AuthConfig struct {
+	JWTSecret   string `validate:"required,min=32"`
+	JWTLifetime int    `validate:"required,min=60"`
+}
+
 func Load() (*Config, error) {
 	cfg := &Config{
 		Primary: Primary{
@@ -63,6 +69,10 @@ func Load() (*Config, error) {
 			MinConns:        atoi32("APP_DATABASE_MIN_CONNS"),
 			ConnMaxLifetime: atoi("APP_DATABASE_CONN_MAX_LIFETIME"),
 			ConnMaxIdletime: atoi("APP_DATABASE_CONN_MAX_IDLE_TIME"),
+		},
+		Auth: AuthConfig{
+			JWTSecret:   os.Getenv("APP_AUTH_JWT_SECRET"),
+			JWTLifetime: atoi("APP_AUTH_JWT_LIFETIME"),
 		},
 	}
 	if err := validator.New().Struct(cfg); err != nil {

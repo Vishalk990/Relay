@@ -13,15 +13,17 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"go.uber.org/zap"
+	"golang.org/x/oauth2"
 )
 
 type Server struct {
-	cfg        *config.Config
-	log        *zap.Logger
-	pool       *pgxpool.Pool
-	auth       *auth.Authenticator
-	echo       *echo.Echo
-	httpServer *http.Server
+	cfg         *config.Config
+	log         *zap.Logger
+	pool        *pgxpool.Pool
+	auth        *auth.Authenticator
+	githubOAuth *oauth2.Config
+	echo        *echo.Echo
+	httpServer  *http.Server
 }
 
 func New(cfg *config.Config, log *zap.Logger, pool *pgxpool.Pool) *Server {
@@ -34,12 +36,19 @@ func New(cfg *config.Config, log *zap.Logger, pool *pgxpool.Pool) *Server {
 		cookieSecure,
 	)
 
+	githubOAuth := auth.NewGitHubOAuthConfig(
+		cfg.OAuth.GitHubClientID,
+		cfg.OAuth.GitHubClientSecret,
+		cfg.OAuth.GitHubCallbackURL,
+	)
+
 	s := &Server{
-		cfg:  cfg,
-		log:  log,
-		pool: pool,
-		auth: authenticator,
-		echo: echo.New(),
+		cfg:         cfg,
+		log:         log,
+		pool:        pool,
+		auth:        authenticator,
+		githubOAuth: githubOAuth,
+		echo:        echo.New(),
 	}
 	// TEMPORARY: HideBanner = false + Start() using e.Start() so the banner shows.
 	// Revert after seeing it once (lose timeouts otherwise).
@@ -93,10 +102,20 @@ func (s *Server) setupMiddleware() {
 func (s *Server) setupRoutes() {
 	s.echo.GET("/health", s.healthHandler)
 
-	authHandler := auth.NewHandler(s.pool, s.log, s.auth)
+	authHandler := auth.NewHandler(
+		s.pool,
+		s.log,
+		s.auth,
+		s.githubOAuth,
+		s.cfg.OAuth.FrontendURL,
+	)
 	s.echo.POST("/auth/sign-up", authHandler.Signup)
 	s.echo.POST("/auth/login", authHandler.Login)
 	s.echo.POST("/auth/logout", authHandler.Logout)
+
+	// GitHub OAuth
+	s.echo.GET("/auth/github/login", authHandler.GitHubLogin)
+	s.echo.GET("/auth/github/callback", authHandler.GitHubCallback)
 
 	protected := s.echo.Group("")
 	protected.Use(auth.Middleware(s.auth))

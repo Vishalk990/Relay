@@ -58,6 +58,12 @@ func (a *Authenticator) Clear(w http.ResponseWriter) {
 	})
 }
 
+// CookieSecure exposes the Secure flag so OAuth helpers can set their own
+// cookies with the same security policy.
+func (a *Authenticator) CookieSecure() bool {
+	return a.cookieSecure
+}
+
 func (a *Authenticator) VerifyCookie(c echo.Context) (string, error) {
 	cookie, err := c.Cookie(CookieName)
 	if err != nil {

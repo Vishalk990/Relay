@@ -64,6 +64,13 @@ function AuthPage() {
 
   function handleOAuth(provider: 'google' | 'github') {
     setPendingProvider(provider)
+    if (provider === 'github') {
+      // Full-page navigation (not fetch) — the BE will 302 us to GitHub.
+      const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
+      window.location.href = `${apiUrl}/auth/github/login`
+      return
+    }
+    // Google flow comes next phase — keep mock for now.
     setTimeout(() => {
       window.location.href = '/app'
     }, 900)

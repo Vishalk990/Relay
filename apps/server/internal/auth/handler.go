@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"golang.org/x/oauth2"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -17,18 +18,23 @@ import (
 )
 
 type Handler struct {
-	pool    *pgxpool.Pool
-	queries *db.Queries
-	log     *zap.Logger
-	auth    *Authenticator
+	pool        *pgxpool.Pool
+	queries     *db.Queries
+	log         *zap.Logger
+	auth        *Authenticator
+	githubOAuth *oauth2.Config
+	frontendURL string
 }
 
-func NewHandler(pool *pgxpool.Pool, log *zap.Logger, auth *Authenticator) *Handler {
+func NewHandler(pool *pgxpool.Pool, log *zap.Logger, auth *Authenticator, githubOAuth *oauth2.Config,
+	frontendURL string) *Handler {
 	return &Handler{
-		pool:    pool,
-		queries: db.New(pool),
-		log:     log,
-		auth:    auth,
+		pool:        pool,
+		queries:     db.New(pool),
+		log:         log,
+		auth:        auth,
+		githubOAuth: githubOAuth,
+		frontendURL: frontendURL,
 	}
 }
 

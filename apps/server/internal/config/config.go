@@ -14,6 +14,7 @@ type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
 	Auth     AuthConfig
+	OAuth    OAuthConfig
 }
 
 type Primary struct {
@@ -46,6 +47,13 @@ type AuthConfig struct {
 	JWTLifetime int    `validate:"required,min=60"`
 }
 
+type OAuthConfig struct {
+	GitHubClientID     string `validate:"required"`
+	GitHubClientSecret string `validate:"required"`
+	GitHubCallbackURL  string `validate:"required,url"`
+	FrontendURL        string `validate:"required,url"`
+}
+
 func Load() (*Config, error) {
 	cfg := &Config{
 		Primary: Primary{
@@ -73,6 +81,12 @@ func Load() (*Config, error) {
 		Auth: AuthConfig{
 			JWTSecret:   os.Getenv("APP_AUTH_JWT_SECRET"),
 			JWTLifetime: atoi("APP_AUTH_JWT_LIFETIME"),
+		},
+		OAuth: OAuthConfig{
+			GitHubClientID:     os.Getenv("APP_OAUTH_GITHUB_CLIENT_ID"),
+			GitHubClientSecret: os.Getenv("APP_OAUTH_GITHUB_CLIENT_SECRET"),
+			GitHubCallbackURL:  os.Getenv("APP_OAUTH_GITHUB_CALLBACK_URL"),
+			FrontendURL:        os.Getenv("APP_OAUTH_FRONTEND_URL"),
 		},
 	}
 	if err := validator.New().Struct(cfg); err != nil {

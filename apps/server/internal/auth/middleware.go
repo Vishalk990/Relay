@@ -3,6 +3,7 @@ package auth
 import (
 	"net/http"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/labstack/echo/v4"
 )
 
@@ -26,4 +27,16 @@ func Middleware(a *Authenticator) echo.MiddlewareFunc {
 func UserIDFromContext(c echo.Context) string {
 	v, _ := c.Get(ContextUserID).(string)
 	return v
+}
+
+func MustUserID(c echo.Context) (pgtype.UUID, error) {
+	s, ok := c.Get(ContextUserID).(string)
+	if !ok || s == "" {
+		return pgtype.UUID{}, echo.NewHTTPError(http.StatusUnauthorized, "not authenticated")
+	}
+	var u pgtype.UUID
+	if err := u.Scan(s); err != nil {
+		return pgtype.UUID{}, echo.NewHTTPError(http.StatusUnauthorized, "invalid token")
+	}
+	return u, nil
 }

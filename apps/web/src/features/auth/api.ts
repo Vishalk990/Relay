@@ -1,5 +1,5 @@
-import { useMutation } from '@tanstack/react-query'
-import { apiFetch } from '@/lib/api/client'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ApiError, apiFetch } from '@/lib/api/client'
 
 export type User = {
   id: string
@@ -40,5 +40,37 @@ export function useLogin() {
         method: 'POST',
         body: req,
       }),
+  })
+}
+
+// useMe queries the current user via the cookie. Returns null on 401
+// (so the FE can distinguish "not logged in" from "real error").
+export function useMe() {
+  return useQuery<User | null>({
+    queryKey: ['me'],
+    queryFn: async () => {
+      try {
+        const res = await apiFetch<{ user: User }>('/auth/me')
+        return res.user
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          return null
+        }
+        throw err
+      }
+    },
+    retry: false,
+    staleTime: 60_000,
+  })
+}
+
+export function useLogout() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => apiFetch<void>('/auth/logout', { method: 'POST' }),
+    onSuccess: () => {
+      // Drop everything that depended on the auth'd identity.
+      qc.clear()
+    },
   })
 }

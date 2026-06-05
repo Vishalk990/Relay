@@ -11,12 +11,22 @@ import (
 )
 
 type Querier interface {
+	CreateCollection(ctx context.Context, arg CreateCollectionParams) (Collection, error)
 	CreateIdentity(ctx context.Context, arg CreateIdentityParams) (UserIdentity, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams) (Workspace, error)
+	DeleteCollection(ctx context.Context, id pgtype.UUID) error
+	DeleteWorkspace(ctx context.Context, arg DeleteWorkspaceParams) error
+	GetCollectionByID(ctx context.Context, id pgtype.UUID) (Collection, error)
 	GetIdentityByProviderSubject(ctx context.Context, arg GetIdentityByProviderSubjectParams) (UserIdentity, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
+	GetWorkspaceByID(ctx context.Context, arg GetWorkspaceByIDParams) (Workspace, error)
+	ListCollectionsInWorkspace(ctx context.Context, workspaceID pgtype.UUID) ([]Collection, error)
 	ListIdentitiesForUser(ctx context.Context, userID pgtype.UUID) ([]UserIdentity, error)
+	ListWorkspacesForUser(ctx context.Context, ownerID pgtype.UUID) ([]Workspace, error)
+	UpdateCollectionName(ctx context.Context, arg UpdateCollectionNameParams) (Collection, error)
+	UpdateWorkspaceName(ctx context.Context, arg UpdateWorkspaceNameParams) (Workspace, error)
 }
 
 var _ Querier = (*Queries)(nil)

@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"net/http"
 	"relay-backend/internal/auth"
+	"relay-backend/internal/collections"
 	"relay-backend/internal/config"
+	"relay-backend/internal/workspaces"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -120,6 +122,15 @@ func (s *Server) setupRoutes() {
 	protected := s.echo.Group("")
 	protected.Use(auth.Middleware(s.auth))
 	protected.GET("/auth/me", authHandler.Me)
+
+	wsHandler := workspaces.NewHandler(s.pool, s.log)
+	protected.POST("/workspaces", wsHandler.Create)
+	protected.GET("/workspaces", wsHandler.List)
+	protected.GET("/workspaces/:id", wsHandler.Get)
+
+	colHandler := collections.NewHandler(s.pool, s.log)
+	protected.GET("/workspaces/:id/collections", colHandler.List)
+	protected.POST("/workspaces/:id/collections", colHandler.Create)
 }
 
 func (s *Server) setupHTTPServer() {

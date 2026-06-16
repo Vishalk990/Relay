@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"net/http"
 	"relay-backend/internal/auth"
+	"relay-backend/internal/collections"
 	"relay-backend/internal/config"
+	"relay-backend/internal/requests"
 	"relay-backend/internal/workspaces"
 	"time"
 
@@ -72,6 +74,7 @@ func (s *Server) setupRoutes() {
 
 	s.echo.POST("/auth/sign-up", authHandler.SignUp)
 	s.echo.POST("/auth/logout", authHandler.Logout)
+	s.echo.GET("/auth/me", authHandler.Me, auth.Middleware(s.auth))
 	s.echo.GET("/auth/google/login", authHandler.GoogleLogin)
 	s.echo.GET("/auth/google/callback", authHandler.GoogleCallback)
 
@@ -84,6 +87,12 @@ func (s *Server) setupRoutes() {
 	protected.POST("/workspaces", workspaceHandler.Create)
 	protected.GET("/workspaces/:id", workspaceHandler.Get)
 
+	reqHandler := requests.NewHandler(s.log)
+	protected.POST("/requests/send", reqHandler.Send)
+
+	collectionHandler := collections.NewHandler(s.pool, s.log)
+	protected.POST("/collections", collectionHandler.Create)
+	protected.GET("/collections", collectionHandler.List)
 }
 
 func (s *Server) setupHTTPServer() {

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -118,6 +119,22 @@ func (h *Handler) SignUp(c echo.Context) error {
 func (h *Handler) Logout(c echo.Context) error {
 	h.auth.Clear(c.Response().Writer)
 	return c.NoContent(http.StatusNoContent)
+}
+
+func (h *Handler) Me(c echo.Context) error {
+	userID, err := MustUserId(c)
+	if err != nil {
+		return err
+	}
+	user, err := h.queries.GetUser(c.Request().Context(), userID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
+		}
+		h.log.Error("me failed", zap.Error(err))
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal error")
+	}
+	return c.JSON(http.StatusOK, map[string]any{"user": user})
 }
 
 func isUniqueViolation(err error) bool {

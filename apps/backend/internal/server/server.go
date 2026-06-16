@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/labstack/echo-contrib/echoprometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"go.uber.org/zap"
@@ -75,10 +76,14 @@ func (s *Server) setupMiddleware() {
 		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodOptions},
 		AllowCredentials: true,
 	}))
+	s.echo.Use(echoprometheus.NewMiddleware("relay"))
+
 }
 
 func (s *Server) setupRoutes() {
 	s.echo.GET("/health", s.healthHandler)
+
+	s.echo.GET("/metrics", echoprometheus.NewHandler())
 
 	googleOAuth := auth.NewGoogleOAuthConfig(
 		s.cfg.OAuth.GoogleClientID,
@@ -89,6 +94,7 @@ func (s *Server) setupRoutes() {
 	authHandler := auth.NewHandler(s.pool, s.log, s.auth, googleOAuth, s.cfg.OAuth.FrontendURL)
 
 	s.echo.POST("/auth/sign-up", authHandler.SignUp)
+	s.echo.POST("/auth/login", authHandler.Login)
 	s.echo.POST("/auth/logout", authHandler.Logout)
 	s.echo.GET("/auth/me", authHandler.Me, auth.Middleware(s.auth))
 	s.echo.GET("/auth/google/login", authHandler.GoogleLogin)

@@ -7,6 +7,7 @@ import (
 	"relay-backend/internal/config"
 	"relay-backend/internal/db"
 	"relay-backend/internal/logger"
+	"relay-backend/internal/metrics"
 	"relay-backend/internal/server"
 	"syscall"
 	"time"
@@ -38,6 +39,7 @@ func main() {
 	defer pool.Close()
 
 	log.Info("db connected", zap.String("name", cfg.Database.Name))
+	metrics.RecordDBPoolStats(pool)
 
 	srv := server.New(cfg, log, pool)
 	go func() {

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"relay-backend/internal/db/sqlc"
+	"relay-backend/internal/metrics"
 	"strings"
 
 	"github.com/google/uuid"
@@ -81,7 +82,7 @@ func (h *Handler) SignUp(c echo.Context) error {
 
 	qtx := h.queries.WithTx(tx)
 
-	user, err := h.queries.CreateUser(ctx, sqlc.CreateUserParams{
+	user, err := qtx.CreateUser(ctx, sqlc.CreateUserParams{
 		Username: req.Username,
 		Email:    req.Email,
 	})
@@ -112,8 +113,49 @@ func (h *Handler) SignUp(c echo.Context) error {
 		h.log.Error("issue cookie failed", zap.Error(err))
 		return echo.NewHTTPError(http.StatusInternalServerError, "internal error")
 	}
+	metrics.SignupsTotal.Inc()
 
 	return c.JSON(http.StatusCreated, map[string]any{"user": user})
+}
+
+func (h *Handler) Login(c echo.Context) error {
+	var req LoginRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid req body")
+	}
+	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
+	if req.Email == "" || req.Password == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "email and password are required")
+	}
+
+	ctx := c.Request().Context()
+	identity, err := h.queries.GetIdentityByProviderSubject(ctx, sqlc.GetIdentityByProviderSubjectParams{
+		Provider:        "password",
+		ProviderSubject: req.Email,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return echo.NewHTTPError(http.StatusUnauthorized, "invalid email or password")
+		}
+		h.log.Error("login: get identity failed", zap.Error(err))
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal error")
+	}
+	if !identity.Credential.Valid || !VerifyPassword(identity.Credential.String, req.Password) {
+		return echo.NewHTTPError(http.StatusUnauthorized, "invalid email or password")
+	}
+
+	user, err := h.queries.GetUser(ctx, identity.UserID)
+	if err != nil {
+		h.log.Error("login: get user failed", zap.Error(err))
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal error")
+	}
+
+	if err := h.auth.IssueAndSet(c.Response().Writer, uuidToString(user.ID)); err != nil {
+		h.log.Error("login: issue cookie failed", zap.Error(err))
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal error")
+	}
+
+	return c.JSON(http.StatusOK, map[string]any{"user": user})
 }
 
 func (h *Handler) Logout(c echo.Context) error {

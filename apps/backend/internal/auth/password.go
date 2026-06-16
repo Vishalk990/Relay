@@ -1,0 +1,21 @@
+package auth
+
+import (
+	"fmt"
+
+	"golang.org/x/crypto/bcrypt"
+)
+
+const bcryptCost = 12
+
+func HashPassword(arg string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(arg), bcryptCost)
+	if err != nil {
+		return "", fmt.Errorf("auth: hash password: %w", err)
+	}
+	return string(hash), nil
+}
+
+func VerifyPassword(hash, password string) bool {
+	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil
+}

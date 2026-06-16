@@ -1,0 +1,30 @@
+# dependencies
+node_modules/
+
+# next.js / build output
+.next/
+out/
+build/
+dist/
+
+# env / secrets — never commit real env files
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# go
+bin/
+*.exe
+
+# logs
+*.log
+npm-debug.log*
+
+# os / editor
+.DS_Store
+.turbo/
+.vscode/
+
+# internal docs (kept local, not published)
+BUILD-GUIDE.md

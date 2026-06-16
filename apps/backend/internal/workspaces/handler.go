@@ -93,3 +93,23 @@ func (h *Handler) Get(c echo.Context) error {
 	}
 	return c.JSON(http.StatusOK, map[string]any{"workspace": ws})
 }
+
+func (h *Handler) Delete(c echo.Context) error {
+	userID, err := auth.MustUserId(c)
+	if err != nil {
+		return err
+	}
+	var wsID pgtype.UUID
+	if err := wsID.Scan(c.Param("id")); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid workspace id")
+	}
+
+	if err := h.queries.DeleteWorkspace(c.Request().Context(), sqlc.DeleteWorkspaceParams{
+		ID:      wsID,
+		OwnerID: userID,
+	}); err != nil {
+		h.log.Error("delete workspace failed", zap.Error(err))
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal error")
+	}
+	return c.NoContent(http.StatusNoContent)
+}

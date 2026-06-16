@@ -53,10 +53,26 @@ func New(cfg *config.Config, log *zap.Logger, pool *pgxpool.Pool) *Server {
 }
 
 func (s *Server) setupMiddleware() {
+
+	s.echo.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
+		LogStatus:   true,
+		LogMethod:   true,
+		LogURI:      true,
+		LogError:    true,
+		HandleError: true,
+		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+			s.log.Info("request",
+				zap.String("method", v.Method),
+				zap.String("uri", v.URI),
+				zap.Int("status", v.Status),
+			)
+			return nil
+		},
+	}))
 	s.echo.Use(middleware.Recover())
 	s.echo.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins:     s.cfg.Server.CorsAllowedOrigin,
-		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodOptions},
+		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodOptions},
 		AllowCredentials: true,
 	}))
 }
@@ -86,6 +102,7 @@ func (s *Server) setupRoutes() {
 	protected.GET("/workspaces", workspaceHandler.List)
 	protected.POST("/workspaces", workspaceHandler.Create)
 	protected.GET("/workspaces/:id", workspaceHandler.Get)
+	protected.DELETE("/workspaces/:id", workspaceHandler.Delete)
 
 	reqHandler := requests.NewHandler(s.log)
 	protected.POST("/requests/send", reqHandler.Send)
@@ -120,7 +137,7 @@ func (s *Server) healthHandler(c echo.Context) error {
 
 func (s *Server) Start() error {
 	s.log.Info("http server listening", zap.String("addr", s.httpServer.Addr))
-	if err := s.httpServer.ListenAndServe(); err != nil && errors.Is(err, http.ErrServerClosed) {
+	if err := s.httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("server: listen: %w", err)
 	}
 	return nil

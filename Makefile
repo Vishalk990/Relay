@@ -43,5 +43,11 @@ migrate-new:
 	@if [ -z "$(name)" ]; then echo "usage: make migrate-new name=create_xxx"; exit 1; fi
 	cd apps/backend && migrate create -ext sql -dir migrations -seq -digits 3 $(name)
 
+migrate-up:
+	cd apps/backend && migrate -path migrations -database "$(LOCAL_DB_URL)" up
+
+migrate-down:
+	cd apps/backend && migrate -path migrations -database "$(LOCAL_DB_URL)" down 1
+
 sqlc-gen:
 	cd apps/backend && sqlc generate

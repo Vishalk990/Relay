@@ -110,8 +110,13 @@ func (s *Server) setupRoutes() {
 	protected.GET("/workspaces/:id", workspaceHandler.Get)
 	protected.DELETE("/workspaces/:id", workspaceHandler.Delete)
 
-	reqHandler := requests.NewHandler(s.log)
+	reqHandler := requests.NewHandler(s.pool, s.log)
 	protected.POST("/requests/send", reqHandler.Send)
+	protected.POST("/collections/:cid/requests", reqHandler.CreateInCollection)
+	protected.GET("/collections/:cid/requests", reqHandler.ListInCollection)
+	protected.GET("/requests/:id", reqHandler.Get)
+	protected.PATCH("/requests/:id", reqHandler.Update)
+	protected.DELETE("/requests/:id", reqHandler.Delete)
 
 	collectionHandler := collections.NewHandler(s.pool, s.log)
 	protected.POST("/collections", collectionHandler.Create)

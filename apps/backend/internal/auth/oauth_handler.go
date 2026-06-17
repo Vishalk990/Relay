@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"relay-backend/internal/db/sqlc"
+	"relay-backend/internal/pgconv"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -46,7 +47,7 @@ func (h *Handler) GoogleCallback(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "internal error")
 
 	}
-	if err := h.auth.IssueAndSet(c.Response().Writer, uuidToString(user.ID)); err != nil {
+	if err := h.auth.IssueAndSet(c.Response().Writer, pgconv.UUIDString(user.ID)); err != nil {
 		h.log.Error("issue cookie failed", zap.Error(err))
 		return echo.NewHTTPError(http.StatusInternalServerError, "internal error")
 	}

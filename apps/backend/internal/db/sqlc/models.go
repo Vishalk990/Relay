@@ -30,6 +30,7 @@ type Request struct {
 	Position     int32              `json:"position"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+	Params       []byte             `json:"params"`
 }
 
 type User struct {

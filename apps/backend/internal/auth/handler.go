@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"relay-backend/internal/db/sqlc"
 	"relay-backend/internal/metrics"
+	"relay-backend/internal/pgconv"
 	"strings"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -109,7 +109,7 @@ func (h *Handler) SignUp(c echo.Context) error {
 		h.log.Error("commit failed", zap.Error(err))
 		return echo.NewHTTPError(http.StatusInternalServerError, "internal error")
 	}
-	if err := h.auth.IssueAndSet(c.Response().Writer, uuidToString(user.ID)); err != nil {
+	if err := h.auth.IssueAndSet(c.Response().Writer, pgconv.UUIDString(user.ID)); err != nil {
 		h.log.Error("issue cookie failed", zap.Error(err))
 		return echo.NewHTTPError(http.StatusInternalServerError, "internal error")
 	}
@@ -150,7 +150,7 @@ func (h *Handler) Login(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "internal error")
 	}
 
-	if err := h.auth.IssueAndSet(c.Response().Writer, uuidToString(user.ID)); err != nil {
+	if err := h.auth.IssueAndSet(c.Response().Writer, pgconv.UUIDString(user.ID)); err != nil {
 		h.log.Error("login: issue cookie failed", zap.Error(err))
 		return echo.NewHTTPError(http.StatusInternalServerError, "internal error")
 	}
@@ -185,20 +185,4 @@ func isUniqueViolation(err error) bool {
 		return pgErr.Code == "23505"
 	}
 	return false
-}
-
-func uuidToString(u pgtype.UUID) string {
-	if !u.Valid {
-		return ""
-	}
-	return uuid.UUID(u.Bytes).String()
-}
-
-// stringToUUID parses a canonical UUID string back into a pgtype.UUID.
-func stringToUUID(s string) (pgtype.UUID, error) {
-	var u pgtype.UUID
-	if err := u.Scan(s); err != nil {
-		return u, err
-	}
-	return u, nil
 }

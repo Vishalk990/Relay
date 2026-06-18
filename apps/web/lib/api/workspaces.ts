@@ -23,3 +23,12 @@ export async function createWorkspace(name: string): Promise<Workspace> {
   const { data } = await api.post<{ workspace: ApiWorkspace }>("/workspaces", { name });
   return toWorkspace(data.workspace);
 }
+
+export async function updateWorkspace(id: string, name: string): Promise<Workspace> {
+  const { data } = await api.patch<{ workspace: ApiWorkspace }>(`/workspaces/${id}`, { name });
+  return toWorkspace(data.workspace);
+}
+
+export async function deleteWorkspace(id: string): Promise<void> {
+  await api.delete(`/workspaces/${id}`);
+}

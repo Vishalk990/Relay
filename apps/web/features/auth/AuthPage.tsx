@@ -3,8 +3,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { GithubIcon, GoogleIcon } from "@/components/ui/icons";
 import { Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { isAxiosError } from "axios";
+import { signIn, signUp } from "@/lib/api/auth";
 
 interface AuthPageProps {
   isSignIn: boolean;
@@ -22,8 +24,27 @@ export function AuthPage({ isSignIn }: AuthPageProps) {
   function startOauth(provider: "google" | "github") {
     setOauth(provider);
     window.location.href = `/api/auth/${provider}/login`;
+  }
 
-    localStorage.setItem("s", "asd");
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      if (isSignIn) {
+        await signIn({ email, password });
+      } else {
+        await signUp({ username, email, password });
+      }
+      router.push("/app");
+    } catch (err) {
+      const message =
+        (isAxiosError(err) && (err.response?.data?.message as string)) ||
+        "Something went wrong. Please try again.";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -65,7 +86,7 @@ export function AuthPage({ isSignIn }: AuthPageProps) {
             <span className="h-px flex-1 bg-white/10" /> or with email <span className="h-px flex-1 bg-white/10" />
           </div>
 
-          <form onSubmit={() => {}} className="flex flex-col gap-5">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             <Input
               label="Email"
               type="email"
@@ -94,7 +115,7 @@ export function AuthPage({ isSignIn }: AuthPageProps) {
             />
             {error && <p className="text-sm text-red-400">{error}</p>}
 
-            <Button type="submit" disabled={loading} className="mt-2 flex items-center justify-center gap-2">
+            <Button type="submit" disabled={loading} className="mt-2 flex w-full items-center justify-center gap-2 bg-blue-600 text-white hover:bg-blue-500">
               {loading && (
                 <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />

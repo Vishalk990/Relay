@@ -111,6 +111,7 @@ func (h *Handler) CreateInCollection(c echo.Context) error {
 	r, err := h.queries.CreateRequest(c.Request().Context(), sqlc.CreateRequestParams{
 		CollectionID: cid,
 		Name:         in.Name,
+		Description:  in.Description,
 		Method:       in.Method,
 		Url:          in.URL,
 		Params:       defaultJSON(in.Params, "[]"),
@@ -164,13 +165,14 @@ func (h *Handler) Update(c echo.Context) error {
 	}
 
 	r, err := h.queries.UpdateRequest(c.Request().Context(), sqlc.UpdateRequestParams{
-		ID:      existing.ID,
-		Name:    in.Name,
-		Method:  in.Method,
-		Url:     in.URL,
-		Params:  defaultJSON(in.Params, "[]"),
-		Headers: defaultJSON(in.Headers, "[]"),
-		Body:    defaultJSON(in.Body, "{}"),
+		ID:          existing.ID,
+		Name:        in.Name,
+		Description: in.Description,
+		Method:      in.Method,
+		Url:         in.URL,
+		Params:      defaultJSON(in.Params, "[]"),
+		Headers:     defaultJSON(in.Headers, "[]"),
+		Body:        defaultJSON(in.Body, "{}"),
 	})
 	if err != nil {
 		h.log.Error("update request failed", zap.Error(err))

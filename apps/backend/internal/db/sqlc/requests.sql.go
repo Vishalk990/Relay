@@ -12,14 +12,15 @@ import (
 )
 
 const createRequest = `-- name: CreateRequest :one
-INSERT INTO requests (collection_id, name, method, url, params, headers, body)
-VALUES ($1, $2, $3, $4, $5, $6, $7) 
-RETURNING id, collection_id, name, method, url, headers, body, auth, position, created_at, updated_at, params
+INSERT INTO requests (collection_id, name, description, method, url, params, headers, body)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+RETURNING id, collection_id, name, method, url, headers, body, auth, position, created_at, updated_at, params, description
 `
 
 type CreateRequestParams struct {
 	CollectionID pgtype.UUID `json:"collection_id"`
 	Name         string      `json:"name"`
+	Description  string      `json:"description"`
 	Method       string      `json:"method"`
 	Url          string      `json:"url"`
 	Params       []byte      `json:"params"`
@@ -31,6 +32,7 @@ func (q *Queries) CreateRequest(ctx context.Context, arg CreateRequestParams) (R
 	row := q.db.QueryRow(ctx, createRequest,
 		arg.CollectionID,
 		arg.Name,
+		arg.Description,
 		arg.Method,
 		arg.Url,
 		arg.Params,
@@ -51,6 +53,7 @@ func (q *Queries) CreateRequest(ctx context.Context, arg CreateRequestParams) (R
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Params,
+		&i.Description,
 	)
 	return i, err
 }
@@ -91,7 +94,7 @@ func (q *Queries) GetCollectionForUser(ctx context.Context, arg GetCollectionFor
 }
 
 const getRequestForUser = `-- name: GetRequestForUser :one
-SELECT r.id, r.collection_id, r.name, r.method, r.url, r.headers, r.body, r.auth, r.position, r.created_at, r.updated_at, r.params FROM requests r
+SELECT r.id, r.collection_id, r.name, r.method, r.url, r.headers, r.body, r.auth, r.position, r.created_at, r.updated_at, r.params, r.description FROM requests r
 JOIN collections c ON c.id = r.collection_id
 JOIN workspaces w on w.id = c.workspace_id
 WHERE r.id = $1 AND w.owner_id = $2
@@ -118,12 +121,13 @@ func (q *Queries) GetRequestForUser(ctx context.Context, arg GetRequestForUserPa
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Params,
+		&i.Description,
 	)
 	return i, err
 }
 
 const listRequestsByCollection = `-- name: ListRequestsByCollection :many
-SELECT id, collection_id, name, method, url, headers, body, auth, position, created_at, updated_at, params FROM requests WHERE collection_id = $1 ORDER BY position, created_at
+SELECT id, collection_id, name, method, url, headers, body, auth, position, created_at, updated_at, params, description FROM requests WHERE collection_id = $1 ORDER BY position, created_at
 `
 
 func (q *Queries) ListRequestsByCollection(ctx context.Context, collectionID pgtype.UUID) ([]Request, error) {
@@ -148,6 +152,7 @@ func (q *Queries) ListRequestsByCollection(ctx context.Context, collectionID pgt
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Params,
+			&i.Description,
 		); err != nil {
 			return nil, err
 		}
@@ -160,24 +165,26 @@ func (q *Queries) ListRequestsByCollection(ctx context.Context, collectionID pgt
 }
 
 const updateRequest = `-- name: UpdateRequest :one
-UPDATE requests SET name = $2, method = $3, url = $4, params = $5, headers = $6, body = $7, updated_at = NOW()
-WHERE id=$1 RETURNING id, collection_id, name, method, url, headers, body, auth, position, created_at, updated_at, params
+UPDATE requests SET name = $2, description = $3, method = $4, url = $5, params = $6, headers = $7, body = $8, updated_at = NOW()
+WHERE id=$1 RETURNING id, collection_id, name, method, url, headers, body, auth, position, created_at, updated_at, params, description
 `
 
 type UpdateRequestParams struct {
-	ID      pgtype.UUID `json:"id"`
-	Name    string      `json:"name"`
-	Method  string      `json:"method"`
-	Url     string      `json:"url"`
-	Params  []byte      `json:"params"`
-	Headers []byte      `json:"headers"`
-	Body    []byte      `json:"body"`
+	ID          pgtype.UUID `json:"id"`
+	Name        string      `json:"name"`
+	Description string      `json:"description"`
+	Method      string      `json:"method"`
+	Url         string      `json:"url"`
+	Params      []byte      `json:"params"`
+	Headers     []byte      `json:"headers"`
+	Body        []byte      `json:"body"`
 }
 
 func (q *Queries) UpdateRequest(ctx context.Context, arg UpdateRequestParams) (Request, error) {
 	row := q.db.QueryRow(ctx, updateRequest,
 		arg.ID,
 		arg.Name,
+		arg.Description,
 		arg.Method,
 		arg.Url,
 		arg.Params,
@@ -198,6 +205,7 @@ func (q *Queries) UpdateRequest(ctx context.Context, arg UpdateRequestParams) (R
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Params,
+		&i.Description,
 	)
 	return i, err
 }

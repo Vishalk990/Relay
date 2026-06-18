@@ -1,6 +1,6 @@
 -- name: CreateRequest :one
-INSERT INTO requests (collection_id, name, method, url, params, headers, body)
-VALUES ($1, $2, $3, $4, $5, $6, $7) 
+INSERT INTO requests (collection_id, name, description, method, url, params, headers, body)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 RETURNING *;
 
 -- name: ListRequestsByCollection :many
@@ -13,7 +13,7 @@ JOIN workspaces w on w.id = c.workspace_id
 WHERE r.id = $1 AND w.owner_id = $2;
 
 -- name: UpdateRequest :one
-UPDATE requests SET name = $2, method = $3, url = $4, params = $5, headers = $6, body = $7, updated_at = NOW()
+UPDATE requests SET name = $2, description = $3, method = $4, url = $5, params = $6, headers = $7, body = $8, updated_at = NOW()
 WHERE id=$1 RETURNING *;
 
 -- name: DeleteRequest :exec

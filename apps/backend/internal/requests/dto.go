@@ -35,8 +35,9 @@ type sendResponse struct {
 }
 
 type saveRequestInput struct {
-	Name    string          `json:"name"`
-	Method  string          `json:"method"`
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
+	Method      string          `json:"method"`
 	URL     string          `json:"url"`
 	Params  json.RawMessage `json:"params"`
 	Headers json.RawMessage `json:"headers"`
@@ -47,6 +48,7 @@ type requestDTO struct {
 	ID           string          `json:"id"`
 	CollectionID string          `json:"collectionId"`
 	Name         string          `json:"name"`
+	Description  string          `json:"description"`
 	Method       string          `json:"method"`
 	URL          string          `json:"url"`
 	Params       json.RawMessage `json:"params"`
@@ -59,6 +61,7 @@ func toDTO(r sqlc.Request) requestDTO {
 		ID:           pgconv.UUIDString(r.ID),
 		CollectionID: pgconv.UUIDString(r.CollectionID),
 		Name:         r.Name,
+		Description:  r.Description,
 		Method:       r.Method,
 		URL:          r.Url,
 		Params:       jsonOrNull(r.Params),

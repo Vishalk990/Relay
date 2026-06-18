@@ -18,6 +18,15 @@ type Collection struct {
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
 
+type Environment struct {
+	ID          pgtype.UUID        `json:"id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	Name        string             `json:"name"`
+	Variables   []byte             `json:"variables"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
 type Request struct {
 	ID           pgtype.UUID        `json:"id"`
 	CollectionID pgtype.UUID        `json:"collection_id"`
@@ -31,6 +40,7 @@ type Request struct {
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
 	Params       []byte             `json:"params"`
+	Description  string             `json:"description"`
 }
 
 type User struct {

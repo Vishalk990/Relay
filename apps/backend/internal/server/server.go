@@ -8,6 +8,7 @@ import (
 	"relay-backend/internal/auth"
 	"relay-backend/internal/collections"
 	"relay-backend/internal/config"
+	"relay-backend/internal/environments"
 	"relay-backend/internal/requests"
 	"relay-backend/internal/workspaces"
 	"time"
@@ -121,6 +122,13 @@ func (s *Server) setupRoutes() {
 	collectionHandler := collections.NewHandler(s.pool, s.log)
 	protected.POST("/collections", collectionHandler.Create)
 	protected.GET("/collections", collectionHandler.List)
+
+	envHandler := environments.NewHandler(s.pool, s.log)
+	protected.POST("/workspaces/:wid/environments", envHandler.CreateInWorkspace)
+	protected.GET("/workspaces/:wid/environments", envHandler.ListInWorkspace)
+	protected.GET("/environments/:id", envHandler.Get)
+	protected.PATCH("/environments/:id", envHandler.Update)
+	protected.DELETE("/environments/:id", envHandler.Delete)
 }
 
 func (s *Server) setupHTTPServer() {

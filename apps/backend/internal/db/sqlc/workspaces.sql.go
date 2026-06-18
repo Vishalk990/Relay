@@ -102,3 +102,28 @@ func (q *Queries) ListWorkspacesForUser(ctx context.Context, ownerID pgtype.UUID
 	}
 	return items, nil
 }
+
+const updateWorkspace = `-- name: UpdateWorkspace :one
+UPDATE workspaces
+SET name = $3
+WHERE id = $1 AND owner_id = $2
+RETURNING id, owner_id, name, created_at
+`
+
+type UpdateWorkspaceParams struct {
+	ID      pgtype.UUID `json:"id"`
+	OwnerID pgtype.UUID `json:"owner_id"`
+	Name    string      `json:"name"`
+}
+
+func (q *Queries) UpdateWorkspace(ctx context.Context, arg UpdateWorkspaceParams) (Workspace, error) {
+	row := q.db.QueryRow(ctx, updateWorkspace, arg.ID, arg.OwnerID, arg.Name)
+	var i Workspace
+	err := row.Scan(
+		&i.ID,
+		&i.OwnerID,
+		&i.Name,
+		&i.CreatedAt,
+	)
+	return i, err
+}

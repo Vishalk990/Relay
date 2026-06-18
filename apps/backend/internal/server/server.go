@@ -109,6 +109,7 @@ func (s *Server) setupRoutes() {
 	protected.GET("/workspaces", workspaceHandler.List)
 	protected.POST("/workspaces", workspaceHandler.Create)
 	protected.GET("/workspaces/:id", workspaceHandler.Get)
+	protected.PATCH("/workspaces/:id", workspaceHandler.Update)
 	protected.DELETE("/workspaces/:id", workspaceHandler.Delete)
 
 	reqHandler := requests.NewHandler(s.pool, s.log)

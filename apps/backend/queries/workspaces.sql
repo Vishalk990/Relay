@@ -14,6 +14,12 @@ SELECT * FROM workspaces
 WHERE owner_id = $1
 ORDER BY created_at;
 
+-- name: UpdateWorkspace :one
+UPDATE workspaces
+SET name = $3
+WHERE id = $1 AND owner_id = $2
+RETURNING *;
+
 -- name: DeleteWorkspace :exec
 DELETE FROM workspaces
 WHERE id = $1 AND owner_id = $2;

@@ -94,6 +94,39 @@ func (h *Handler) Get(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]any{"workspace": ws})
 }
 
+func (h *Handler) Update(c echo.Context) error {
+	userID, err := auth.MustUserId(c)
+	if err != nil {
+		return err
+	}
+	var wsID pgtype.UUID
+	if err := wsID.Scan(c.Param("id")); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid workspace id")
+	}
+	var req CreateRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid req body")
+	}
+	req.Name = strings.TrimSpace(req.Name)
+	if req.Name == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "name is required")
+	}
+
+	ws, err := h.queries.UpdateWorkspace(c.Request().Context(), sqlc.UpdateWorkspaceParams{
+		ID:      wsID,
+		OwnerID: userID,
+		Name:    req.Name,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return echo.NewHTTPError(http.StatusNotFound, "workspace not found")
+		}
+		h.log.Error("update workspace failed", zap.Error(err))
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal error")
+	}
+	return c.JSON(http.StatusOK, map[string]any{"workspace": ws})
+}
+
 func (h *Handler) Delete(c echo.Context) error {
 	userID, err := auth.MustUserId(c)
 	if err != nil {
